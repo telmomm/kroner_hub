@@ -1,9 +1,13 @@
 #include <Arduino.h>
 #include <ArduinoBLE.h>
-#include <U8g2lib.h>
 #include <Wire.h>
 #include <Keypad.h>
 
+// FIRMWARE VERSION INFORMATION
+#define FIRMWARE_VERSION "1.0.0"
+#define FIRMWARE_BUILD_DATE __DATE__
+#define FIRMWARE_BUILD_TIME __TIME__
+#define DEVICE_MODEL "Kroner-Hub-v1"
 
 // DEBUG MODE
 #define DEBUG
@@ -16,14 +20,9 @@
 #endif
 
 
-#define SDA_PIN 17  // Pin SDA (Serial Data)
-#define SCL_PIN 18  // Pin SCL (Serial Clock)
-#define RST_PIN 21  // Pin RST (Reset)
-U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, RST_PIN, SCL_PIN, SDA_PIN);
-
-
 BLEService pulsadorService("19B10000-E8F2-537E-4F6C-D104768A1214");
 BLECharacteristic pulsadorCharacteristic("b444ea9a-a1b8-11ee-8c90-0242ac120002", BLENotify | BLERead, 40);
+BLECharacteristic firmwareCharacteristic("c555fa9a-a1b8-11ee-8c90-0242ac120003", BLERead | BLEWrite, 50);
 
 #define F1PIN 22
 #define F2PIN 21
@@ -44,6 +43,7 @@ volatile uint32_t F1, F2, F3;
 uint32_t message[4];
 
 const uint32_t debounceTime = 200; // Tiempo de rebote en milisegundos
+const uint32_t switchDebounceTime = 100; 
 volatile uint32_t lastInterruptTimeF1 = 0;
 volatile uint32_t lastInterruptTimeF2 = 0;
 volatile uint32_t lastInterruptTimeF3 = 0;
@@ -77,6 +77,69 @@ byte rowPins[rowsCount] = {INPUT4PIN, INPUT5PIN, INPUT6PIN};
 byte colPins[columsCount] = {INPUT1PIN, INPUT2PIN, INPUT3PIN}; 
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, rowsCount, columsCount);
 
+// Función para crear y enviar información de firmware
+void sendFirmwareInfo() {
+  char firmwareInfo[100];
+  snprintf(firmwareInfo, sizeof(firmwareInfo), 
+           "FW:%s|Model:%s|Build:%s %s", 
+           FIRMWARE_VERSION, 
+           DEVICE_MODEL, 
+           FIRMWARE_BUILD_DATE, 
+           FIRMWARE_BUILD_TIME);
+  
+  DEBUG_PRINT("Enviando info firmware: ");
+  DEBUG_PRINTLN(firmwareInfo);
+  
+  firmwareCharacteristic.writeValue((uint8_t*)firmwareInfo, strlen(firmwareInfo));
+}
+
+void sendHelpInfo() {
+  char helperInfo[200];
+  snprintf(helperInfo, sizeof(helperInfo), 
+           "Help | FW Version | RESET");
+  
+  DEBUG_PRINT("Enviando info ayuda: ");
+  DEBUG_PRINTLN(helperInfo);
+  firmwareCharacteristic.writeValue((uint8_t*)helperInfo, strlen(helperInfo));
+}
+
+// Función para procesar comandos recibidos por BLE
+void processBLECommand(const String& command) {
+  DEBUG_PRINT("Comando recibido: ");
+  DEBUG_PRINTLN(command);
+  
+  if (command == "FW Version" || command == "FW_VERSION" || command == "fw version") {
+    sendFirmwareInfo();
+  }
+  else if (command == "RESET") {
+    DEBUG_PRINTLN("Reiniciando dispositivo...");
+    ESP.restart();
+  }
+  else if (command == "HELP" || command == "Help" || command == "help") {
+    DEBUG_PRINTLN("Comandos disponibles:");
+    DEBUG_PRINTLN(" - FW Version");
+    DEBUG_PRINTLN(" - RESET");
+    DEBUG_PRINTLN(" - HELP");
+    sendHelpInfo();
+  }
+  else {
+    DEBUG_PRINT("Comando no reconocido: ");
+    DEBUG_PRINTLN(command);
+  }
+
+}
+
+// Callback para cuando se escriba en la característica de firmware
+void onFirmwareCharacteristicWritten(BLEDevice central, BLECharacteristic characteristic) {
+  String command = "";
+  if (characteristic.valueLength() > 0) {
+    for (int i = 0; i < characteristic.valueLength(); i++) {
+      command += (char)characteristic.value()[i];
+    }
+    command.trim(); // Eliminar espacios en blanco
+    processBLECommand(command);
+  }
+}
 
 void handleInterruptF1() {
   uint32_t currentMillis = millis();
@@ -117,11 +180,27 @@ float readBatteryLevel(){
 
 //const uint32_t debounceTime = 200;
 uint32_t lastPressedTime[3][3] = {0};
+uint32_t lastInputTime [3] = {0};
+bool inputState[3] = {false};
+bool lastInputState[3] = {false};
+
 //bool newInputValue = false;
 
 
 void setup() {
   Serial.begin(115200);
+  
+  // Mostrar información de firmware al inicio
+  DEBUG_PRINTLN("=================================");
+  DEBUG_PRINT("Device: ");
+  DEBUG_PRINTLN(DEVICE_MODEL);
+  DEBUG_PRINT("Firmware Version: ");
+  DEBUG_PRINTLN(FIRMWARE_VERSION);
+  DEBUG_PRINT("Build Date: ");
+  DEBUG_PRINT(FIRMWARE_BUILD_DATE);
+  DEBUG_PRINT(" ");
+  DEBUG_PRINTLN(FIRMWARE_BUILD_TIME);
+  DEBUG_PRINTLN("=================================");
 
   pinMode(F1PIN, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(F1PIN), handleInterruptF1, RISING);
@@ -144,7 +223,7 @@ void setup() {
     while (1);
   }
 
-  pinMode(INPUT8PIN, INPUT);
+  pinMode(INPUT7PIN, INPUT_PULLDOWN);
 
   // Configurar el nombre del dispositivo BLE
   BLE.setLocalName("Kroner-Hub");
@@ -152,7 +231,11 @@ void setup() {
 
   // Configurar el servicio BLE
   pulsadorService.addCharacteristic(pulsadorCharacteristic);
+  pulsadorService.addCharacteristic(firmwareCharacteristic);
   BLE.addService(pulsadorService);
+  
+  // Configurar callback para cuando se escriba en la característica de firmware
+  firmwareCharacteristic.setEventHandler(BLEWritten, onFirmwareCharacteristicWritten);
 
 
   // Iniciar el anuncio BLE
@@ -169,6 +252,35 @@ void sendKeypadEvent(const String& name, uint32_t timestamp) {
   Serial.println(payload);
 
   pulsadorCharacteristic.writeValue((uint8_t*)payload, strlen(payload));
+}
+
+bool lastSwitch1State = false;
+
+
+void scanSwitches() {
+
+  bool switch1State = digitalRead(INPUT7PIN);
+  if (switch1State != lastSwitch1State) {
+    lastSwitch1State = switch1State;
+    char payload[50];  // Asegúrate de que sea lo suficientemente grande
+    snprintf(payload, sizeof(payload), "Switch1:%s:%lu", switch1State ? "ON" : "OFF", millis());
+
+  Serial.println(payload);
+    DEBUG_PRINTLN(payload);
+  }
+  
+}
+
+bool input7State = false;
+
+void scanSwitch(int inputNumber, int inputPin) {
+  bool aux = digitalRead(inputPin);
+  uint32_t now = millis();
+  if (aux != inputState[inputNumber] && (now - lastInputTime[inputNumber] > switchDebounceTime)) {
+    lastInputTime[inputNumber] = now;
+    inputState[inputNumber] = aux;
+    sendKeypadEvent(aux ? "Input" + String(inputNumber + 1) + " ON" : "Input" + String(inputNumber + 1) + " OFF", now);
+  }
 }
 
 void scanKeypad() {
@@ -205,18 +317,27 @@ void loop(){
 
   // Si se conecta un cliente BLE
   if (central) {
-    Serial.print("Conectado a: ");
+    DEBUG_PRINT("Conectado a: ");
     // Imprimir la dirección MAC del cliente BLE
-    Serial.println(central.address());
-    Serial.println(central.localName());
-    Serial.println(central.connected());
+    DEBUG_PRINTLN(central.address());
+    DEBUG_PRINTLN(central.localName());
+    DEBUG_PRINTLN(central.connected());
+    
+    // Enviar información de firmware al conectarse
+    delay(1000); // Pequeña pausa para asegurar conexión estable
+    sendFirmwareInfo();
     // Bucle para recibir comandos desde el cliente BLE
     while (central.connected()) {
 
       scanKeypad();
 
+      scanSwitch(0, INPUT8PIN);
+
+      
+
       if (newInputValue){
-        message[0] = F1;
+        bool status_switch1 = digitalRead(INPUT7PIN);
+        message[0] = F1 + (status_switch1 ? 0x80000000 : 0);
         message[1] = F2;
         message[2] = F3;
         //message[3] = batterySOC;
@@ -232,7 +353,7 @@ void loop(){
 
         pulsadorCharacteristic.writeValue((uint8_t*)message, sizeof(message));
         newInputValue = false;
-        
+      
       }
     }
 
