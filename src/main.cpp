@@ -3,7 +3,7 @@
 #include <Wire.h>
 #include <Keypad.h>
 
-// FIRMWARE VERSION INFORMATION
+// FIRMWARE VERSION INFORMATION 
 #define FIRMWARE_VERSION "1.0.0"
 #define FIRMWARE_BUILD_DATE __DATE__
 #define FIRMWARE_BUILD_TIME __TIME__
@@ -283,6 +283,18 @@ void scanSwitch(int inputNumber, int inputPin) {
   }
 }
 
+void sendInitialSwitchState(int inputNumber, int inputPin) {
+  bool aux = digitalRead(inputPin);
+  uint32_t now = millis();
+  inputState[inputNumber] = aux;
+  lastInputTime[inputNumber] = now;
+  sendKeypadEvent(aux ? "Input" + String(inputNumber + 1) + " ON" : "Input" + String(inputNumber + 1) + " OFF", now);
+  DEBUG_PRINT("Estado inicial Switch ");
+  DEBUG_PRINT(inputNumber + 1);
+  DEBUG_PRINT(": ");
+  DEBUG_PRINTLN(aux ? "ON" : "OFF");
+}
+
 void scanKeypad() {
   char key = keypad.getKey();
 
@@ -326,18 +338,25 @@ void loop(){
     // Enviar información de firmware al conectarse
     delay(1000); // Pequeña pausa para asegurar conexión estable
     sendFirmwareInfo();
+
+    // Enviar estado inicial de todos los switches
+    DEBUG_PRINTLN("Enviando estado inicial de switches...");
+    sendInitialSwitchState(0, INPUT7PIN);
+    sendInitialSwitchState(1, INPUT8PIN);
+    sendInitialSwitchState(2, INPUT9PIN);
+
     // Bucle para recibir comandos desde el cliente BLE
     while (central.connected()) {
 
       scanKeypad();
 
-      scanSwitch(0, INPUT8PIN);
-
-      
+      scanSwitch(0, INPUT7PIN);
+      scanSwitch(1, INPUT8PIN);
+      scanSwitch(2, INPUT9PIN);
 
       if (newInputValue){
         bool status_switch1 = digitalRead(INPUT7PIN);
-        message[0] = F1 + (status_switch1 ? 0x80000000 : 0);
+        message[0] = F1;
         message[1] = F2;
         message[2] = F3;
         //message[3] = batterySOC;
