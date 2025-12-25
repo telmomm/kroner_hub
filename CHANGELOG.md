@@ -3,6 +3,26 @@
 Format based on  [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 
+## [1.0.2] - 25-12-2025
+
+### Added
+- Comprehensive README.md documentation in English covering all project features
+- Centralized configuration system with all settings in `include/kroner_config.h`
+- Build flag `-Iinclude` in platformio.ini for proper header file resolution
+- Fallback DEBUG macros in APCModule for compatibility when config header is not available
+
+### Fixed
+- Configuration header renamed from `config.h` to `kroner_config.h` to avoid conflicts with system/library headers
+- Include guard updated to `KRONER_CONFIG_H` for unique identification
+- APCModule library updated to include `<kroner_config.h>` with angle brackets for proper library path resolution
+- Compilation errors in APCModule resolved by adding fallback DEBUG_PRINT/DEBUG_PRINTLN definitions
+
+### Changed
+- Moved configuration header from `src/config.h` to `include/kroner_config.h`
+- Updated all source files to include `kroner_config.h` instead of `config.h`
+- Improved APCModule integration with centralized configuration system
+- Build system now explicitly includes `include/` directory for library compilation
+
 ## [1.0.1] - 25-12-2025
 
 ### Added

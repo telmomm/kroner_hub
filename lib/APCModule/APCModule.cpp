@@ -1,4 +1,12 @@
+#include <kroner_config.h>
 #include "APCModule.h"
+
+#ifndef DEBUG_PRINT
+  #define DEBUG_PRINT(x) Serial.print(x)
+#endif
+#ifndef DEBUG_PRINTLN
+  #define DEBUG_PRINTLN(x) Serial.println(x)
+#endif
 
 APCModule::APCModule(HardwareSerial &serial, int setPin) : serial(serial), hwSerial(&serial), swSerial(nullptr), setPin(setPin), rxPin(-1), txPin(-1) {
 }
@@ -53,6 +61,9 @@ bool APCModule::tryReadConfig(String &out, unsigned long waitMs) {
 }
 
 void APCModule::init(int baudarate, int maxSetTimeOut) {
+  DEBUG_PRINTLN("=================================");
+  DEBUG_PRINTLN("Iniciando módulo APC220...");
+  // Configurar pin SET
   pinMode(setPin, OUTPUT);
   digitalWrite(setPin, HIGH); // Modo operación por defecto
 
@@ -114,6 +125,7 @@ void APCModule::setSettings(String ACPConfig){
     Serial.println(response);
     Serial.println("APCModule: Configuración puede no haberse aplicado");
   }
+  DEBUG_PRINTLN("=================================");
 }
 
 String APCModule::getSettings(){
