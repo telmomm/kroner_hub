@@ -2,9 +2,15 @@
 #include <ArduinoBLE.h>
 #include <Wire.h>
 #include <Keypad.h>
+#include <APCModule.h>
+#include <WiFi.h>
+#include <WebServer.h>
+#include <DNSServer.h>
+#include <LittleFS.h>
+
 
 // FIRMWARE VERSION INFORMATION 
-#define FIRMWARE_VERSION "1.0.0"
+#define FIRMWARE_VERSION "1.0.1"
 #define FIRMWARE_BUILD_DATE __DATE__
 #define FIRMWARE_BUILD_TIME __TIME__
 #define DEVICE_MODEL "Kroner-Hub-v1"
@@ -24,6 +30,10 @@ BLEService pulsadorService("19B10000-E8F2-537E-4F6C-D104768A1214");
 BLECharacteristic pulsadorCharacteristic("b444ea9a-a1b8-11ee-8c90-0242ac120002", BLENotify | BLERead, 40);
 BLECharacteristic firmwareCharacteristic("c555fa9a-a1b8-11ee-8c90-0242ac120003", BLERead | BLEWrite, 50);
 
+// Servicio BLE para puente serie (escritura -> Serial2)
+BLEService serialBridgeService("12345678-1234-5678-1234-56789abcdef0");
+BLECharacteristic serialBridgeWriteChar("12345678-1234-5678-1234-56789abcdef1", BLEWrite | BLEWriteWithoutResponse, 244);
+
 #define F1PIN 22
 #define F2PIN 21
 #define F3PIN 19
@@ -37,6 +47,10 @@ BLECharacteristic firmwareCharacteristic("c555fa9a-a1b8-11ee-8c90-0242ac120003",
 #define INPUT8PIN 4
 #define INPUT9PIN 5
 #define INPUT10PIN 18
+// APC220 PINPUT
+#define APC_RXPIN 16
+#define APC_TXPIN 17
+#define APC_SETPIN 23
 
 volatile uint32_t F1, F2, F3;
 
@@ -76,6 +90,18 @@ char keys[rowsCount][columsCount] = {
 byte rowPins[rowsCount] = {INPUT4PIN, INPUT5PIN, INPUT6PIN};  
 byte colPins[columsCount] = {INPUT1PIN, INPUT2PIN, INPUT3PIN}; 
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, rowsCount, columsCount);
+
+// Instancia del módulo APC220 usando Serial2 (RX=16, TX=17) y SET=23
+APCModule radio(Serial2, APC_SETPIN, APC_RXPIN, APC_TXPIN);
+
+// Web Server
+WebServer webServer(80);
+DNSServer dnsServer;
+
+// Buffer para datos recibidos por BLE (para clientes HTTP que hagan polling)
+volatile uint8_t lastMessageBuffer[255];
+volatile int lastMessageLen = 0;
+volatile unsigned long lastMessageTime = 0;
 
 // Función para crear y enviar información de firmware
 void sendFirmwareInfo() {
@@ -141,6 +167,28 @@ void onFirmwareCharacteristicWritten(BLEDevice central, BLECharacteristic charac
   }
 }
 
+// Callback: al escribir en el puente BLE, reenviar a Serial2 Y guardar en buffer para web
+void onSerialBridgeWritten(BLEDevice central, BLECharacteristic characteristic) {
+  int len = characteristic.valueLength();
+  if (len <= 0) return;
+  const uint8_t* data = characteristic.value();
+
+  // Reenviar bytes crudos a Serial2 (UART del APC220)
+  Serial2.write(data, len);
+  Serial2.flush();
+
+  // Guardar en buffer para clientes HTTP
+  if (len <= 255) {
+    memcpy((void*)lastMessageBuffer, data, len);
+    lastMessageLen = len;
+    lastMessageTime = millis();
+  }
+
+  // Log opcional por USB
+  DEBUG_PRINT("BLE->UART (bytes): ");
+  DEBUG_PRINTLN(len);
+}
+
 void handleInterruptF1() {
   uint32_t currentMillis = millis();
   if (currentMillis - lastInterruptTimeF1 > debounceTime) {
@@ -165,6 +213,76 @@ void handleInterruptF3() {
     F3 = currentMillis;
     lastInterruptTimeF3 = currentMillis;
     newInputValue = true;
+  }
+}
+
+// Función para servir la página HTML desde LittleFS
+void handleRoot() {
+  if (LittleFS.exists("/index.html")) {
+    File file = LittleFS.open("/index.html", "r");
+    webServer.streamFile(file, "text/html");
+    file.close();
+  } else {
+    webServer.send(404, "text/plain", "index.html no encontrado");
+  }
+}
+
+// Captive Portal: redirigir cualquier ruta desconocida a la raíz
+void handleNotFound() {
+  // Si no es una petición a API, redirigir a la raíz
+  String path = webServer.uri();
+  if (!path.startsWith("/api/")) {
+    webServer.sendHeader("Location", "http://192.168.4.1/", true);
+    webServer.send(302, "text/plain", "");
+  } else {
+    webServer.send(404, "text/plain", "Not found");
+  }
+}
+
+// API: obtener último mensaje recibido
+void handleGetMessages() {
+  char jsonResponse[512];
+  
+  // Convertir buffer a base64
+  char base64Buffer[400];
+  int base64Len = 0;
+  if (lastMessageLen > 0) {
+    // Implementación simple de base64
+    const char* alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    int i = 0;
+    while (i < lastMessageLen) {
+      uint8_t b1 = lastMessageBuffer[i++];
+      uint8_t b2 = (i < lastMessageLen) ? lastMessageBuffer[i++] : 0;
+      uint8_t b3 = (i < lastMessageLen) ? lastMessageBuffer[i++] : 0;
+      
+      base64Buffer[base64Len++] = alphabet[b1 >> 2];
+      base64Buffer[base64Len++] = alphabet[((b1 & 0x03) << 4) | (b2 >> 4)];
+      if (i - 1 < lastMessageLen) {
+        base64Buffer[base64Len++] = alphabet[((b2 & 0x0F) << 2) | (b3 >> 6)];
+      }
+      if (i < lastMessageLen) {
+        base64Buffer[base64Len++] = alphabet[b3 & 0x3F];
+      }
+    }
+  }
+  base64Buffer[base64Len] = '\0';
+  
+  snprintf(jsonResponse, sizeof(jsonResponse), 
+    "{\"len\":%d,\"time\":%lu,\"data\":\"%s\"}",
+    lastMessageLen, lastMessageTime, base64Buffer);
+  
+  webServer.send(200, "application/json", jsonResponse);
+}
+
+// API: enviar mensaje a Serial2
+void handleSendMessage() {
+  if (webServer.hasArg("plain")) {
+    String msg = webServer.arg("plain");
+    Serial2.write((uint8_t*)msg.c_str(), msg.length());
+    Serial2.flush();
+    webServer.send(200, "text/plain", "OK");
+  } else {
+    webServer.send(400, "text/plain", "No message");
   }
 }
 /*
@@ -202,6 +320,34 @@ void setup() {
   DEBUG_PRINTLN(FIRMWARE_BUILD_TIME);
   DEBUG_PRINTLN("=================================");
 
+  // Inicializar LittleFS
+  if (!LittleFS.begin()) {
+    DEBUG_PRINTLN("Error al inicializar LittleFS");
+  } else {
+    DEBUG_PRINTLN("LittleFS iniciado correctamente");
+  }
+
+  // Configurar WiFi AP
+  DEBUG_PRINTLN("Iniciando WiFi AP...");
+  WiFi.mode(WIFI_AP);
+  WiFi.softAP("Kroner", "");  // SSID "Kroner", sin contraseña
+  IPAddress apIP(192, 168, 4, 1);
+  WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
+  DEBUG_PRINT("AP IP: ");
+  DEBUG_PRINTLN(WiFi.softAPIP());
+
+  // Configurar DNS para Captive Portal (redirigir todo a 192.168.4.1)
+  dnsServer.start(53, "*", apIP);
+  DEBUG_PRINTLN("DNS Server iniciado para Captive Portal");
+
+  // Configurar Web Server
+  webServer.on("/", handleRoot);
+  webServer.on("/api/messages", handleGetMessages);
+  webServer.on("/api/send", HTTP_POST, handleSendMessage);
+  webServer.onNotFound(handleNotFound);  // Captive Portal redirect
+  webServer.begin();
+  DEBUG_PRINTLN("Web Server iniciado en puerto 80");
+
   pinMode(F1PIN, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(F1PIN), handleInterruptF1, RISING);
 
@@ -216,14 +362,32 @@ void setup() {
   for (int i = 0; i < columsCount; i++) {
     pinMode(colPins[i], INPUT_PULLUP);  // Estabiliza la lectura
   }
+  // Configurar entradas discretas 7/8/9 con pull-up interno
+  // Nota: GPIO4, GPIO5 y GPIO15 son "strapping pins" del ESP32; evitar forzarlos
+  // en estados inválidos durante el arranque. Tras el boot, pueden usarse con cuidado.
+  pinMode(INPUT7PIN, INPUT_PULLDOWN);
+  pinMode(INPUT8PIN, INPUT_PULLDOWN);
+  pinMode(INPUT9PIN, INPUT_PULLDOWN);
   
+  pinMode(APC_SETPIN, OUTPUT);
+  
+  // Inicializar APC220 a baud fijo
+  radio.init(9600, 500);
+
+  // Aplicar configuración previa solicitada
+  // Parámetros: 435000 (freq kHz), RF=3(9600), Power=9, UART=3(9600), Parity=0
+  radio.setSettings("PARA 435000 3 9 3 0");
+
+  // Leer configuración para verificar
+  String resp = radio.getSettings();
+  DEBUG_PRINTLN(resp);              // Espera: "PARA 435000 3 9 3 0"
+
   // Inicializar el BLE
   if (!BLE.begin()) {
     Serial.println("No se pudo iniciar BLE");
     while (1);
   }
 
-  pinMode(INPUT7PIN, INPUT_PULLDOWN);
 
   // Configurar el nombre del dispositivo BLE
   BLE.setLocalName("Kroner-Hub");
@@ -233,9 +397,15 @@ void setup() {
   pulsadorService.addCharacteristic(pulsadorCharacteristic);
   pulsadorService.addCharacteristic(firmwareCharacteristic);
   BLE.addService(pulsadorService);
+
+  // Servicio de puente serie
+  serialBridgeService.addCharacteristic(serialBridgeWriteChar);
+  BLE.addService(serialBridgeService);
   
   // Configurar callback para cuando se escriba en la característica de firmware
   firmwareCharacteristic.setEventHandler(BLEWritten, onFirmwareCharacteristicWritten);
+  // Callback para puente serie (escritura -> UART)
+  serialBridgeWriteChar.setEventHandler(BLEWritten, onSerialBridgeWritten);
 
 
   // Iniciar el anuncio BLE
@@ -257,21 +427,6 @@ void sendKeypadEvent(const String& name, uint32_t timestamp) {
 bool lastSwitch1State = false;
 
 
-void scanSwitches() {
-
-  bool switch1State = digitalRead(INPUT7PIN);
-  if (switch1State != lastSwitch1State) {
-    lastSwitch1State = switch1State;
-    char payload[50];  // Asegúrate de que sea lo suficientemente grande
-    snprintf(payload, sizeof(payload), "Switch1:%s:%lu", switch1State ? "ON" : "OFF", millis());
-
-  Serial.println(payload);
-    DEBUG_PRINTLN(payload);
-  }
-  
-}
-
-bool input7State = false;
 
 void scanSwitch(int inputNumber, int inputPin) {
   bool aux = digitalRead(inputPin);
@@ -320,9 +475,13 @@ void scanKeypad() {
 }
 
 
-void loop(){
 
+void loop(){
+  // Procesar peticiones HTTP
+  webServer.handleClient();
   
+  // Procesar peticiones DNS para Captive Portal
+  dnsServer.processNextRequest();
 
   // Esperar a que se conecte un cliente BLE
   BLEDevice central = BLE.central();
@@ -347,6 +506,8 @@ void loop(){
 
     // Bucle para recibir comandos desde el cliente BLE
     while (central.connected()) {
+      // Procesar peticiones HTTP incluso durante conexión BLE
+      webServer.handleClient();
 
       scanKeypad();
 
@@ -355,7 +516,6 @@ void loop(){
       scanSwitch(2, INPUT9PIN);
 
       if (newInputValue){
-        bool status_switch1 = digitalRead(INPUT7PIN);
         message[0] = F1;
         message[1] = F2;
         message[2] = F3;
