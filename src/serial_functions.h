@@ -11,4 +11,7 @@ extern APCModule radio;
 // Funciones de comunicación serial
 void initAPC220();
 
+// Imprime el banner de arranque con información de firmware
+void printBootBanner();
+
 #endif

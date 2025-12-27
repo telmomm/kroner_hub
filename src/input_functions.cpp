@@ -5,7 +5,7 @@
 // Variables globales de interrupciones
 volatile uint32_t F1, F2, F3;
 volatile bool newInputValue = false;
-const uint32_t debounceTime = 200;
+const uint32_t debounceTime = 200;      // valor previo estable para keypad
 const uint32_t switchDebounceTime = 100;
 volatile uint32_t lastInterruptTimeF1 = 0;
 volatile uint32_t lastInterruptTimeF2 = 0;
@@ -82,6 +82,10 @@ void initInputs() {
     pinMode(colPins[i], INPUT_PULLUP);
   }
 
+  // Afinar tiempos del Keypad
+  keypad.setDebounceTime(10);  // ms (valor previo)
+  keypad.setHoldTime(500);     // ms
+
   // Configurar entradas discretas 7/8/9
   pinMode(INPUT7PIN, INPUT_PULLDOWN);
   pinMode(INPUT8PIN, INPUT_PULLDOWN);
@@ -92,7 +96,7 @@ void sendKeypadEvent(const String& name, uint32_t timestamp) {
   char payload[50];
   snprintf(payload, sizeof(payload), "%s:%lu", name.c_str(), timestamp);
 
-  Serial.println(payload);
+  DEBUG_PRINTLN(payload);
   pulsadorCharacteristic.writeValue((uint8_t*)payload, strlen(payload));
 }
 
@@ -122,15 +126,33 @@ void scanKeypad() {
   char key = keypad.getKey();
 
   if (key) {
+    DEBUG_PRINT("🔘 Keypad detected: ");
+    DEBUG_PRINT(key);
+    DEBUG_PRINT(" | Millis: ");
+    DEBUG_PRINTLN(millis());
+    
     uint32_t now = millis();
 
     for (int i = 0; i < rowsCount; i++) {
       for (int j = 0; j < columsCount; j++) {
         if (keys[i][j] == key) {
-          if (now - lastPressedTime[i][j] > debounceTime) {
+          uint32_t timeSinceLastPress = now - lastPressedTime[i][j];
+          
+          // Debug: mostrar tiempo desde última pulsación
+          DEBUG_PRINT("  Time since last press: ");
+          DEBUG_PRINT(timeSinceLastPress);
+          DEBUG_PRINT(" ms (debounce: ");
+          DEBUG_PRINT(debounceTime);
+          DEBUG_PRINTLN(" ms)");
+          
+          if (timeSinceLastPress > debounceTime) {
             lastPressedTime[i][j] = now;
+            DEBUG_PRINT("  ✓ VALID - Sending: ");
+            DEBUG_PRINTLN(keyNames[i][j]);
             sendKeypadEvent(keyNames[i][j], now);
             return;
+          } else {
+            DEBUG_PRINTLN("  ✗ Ignored (debouncing)");
           }
         }
       }

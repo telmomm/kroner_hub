@@ -1,15 +1,21 @@
 # Kroner Hub
 
-**Version:** 1.0.2  
+**Version:** 1.0.3  
 **Platform:** ESP32 (Adafruit Feather)  
-**Framework:** Arduino + PlatformIO
+**Framework:** Arduino + PlatformIO + FreeRTOS
 
 ## Overview
 
 Kroner Hub is a multi-interface communication hub built on ESP32, designed to bridge multiple communication protocols including WiFi, Bluetooth Low Energy (BLE), and APC220 wireless radio. It features a modular architecture with a web interface, captive portal, and flexible input handling capabilities.
 
+**Architecture:** Built on FreeRTOS native tasks with optimized dual-core utilization for ESP32. Core 0 handles WiFi/networking operations, while Core 1 manages BLE and real-time input processing for maximum responsiveness.
+
 ## Key Features
 
+- **FreeRTOS Multi-Core Architecture** with pinned tasks for optimal ESP32 dual-core utilization
+  - Core 0: WiFi/WebServer (50ms) + Radio processing (200ms)
+  - Core 1: BLE polling (20ms) + Input scanning (10ms) + Debug (5s)
+  - True parallel execution with preemptive multitasking
 - **WiFi Access Point** with captive portal functionality
 - **Web Server** with LittleFS filesystem for HTML/static content
 - **BLE (Bluetooth Low Energy)** interface for wireless connectivity
@@ -57,15 +63,28 @@ Kroner Hub is a multi-interface communication hub built on ESP32, designed to br
 
 ## Software Architecture
 
-The project is organized into functional modules:
+The project uses **FreeRTOS native tasks** with core pinning for optimal performance:
+
+### Task Distribution
+- **Core 0 (WiFi Stack):**
+  - WebServer Task (50ms, priority 2) - HTTP requests & DNS
+  - Radio Task (200ms, priority 2) - APC220 data processing
+
+- **Core 1 (Real-time I/O):**
+  - BLE Task (20ms, priority 3) - BLE.poll() & connection handling
+  - Inputs Task (10ms, priority 3) - Keypad & switch scanning
+  - Debug Task (5s, priority 1) - System status logging
+
+### Module Organization
 
 ```
 src/
-├── main.cpp                    # Main program loop
+├── main.cpp                    # Setup & FreeRTOS task initialization
+├── task_functions.cpp/h        # FreeRTOS task implementations
 ├── ble_functions.cpp/h         # BLE functionality
 ├── webserver_functions.cpp/h   # Web server & WiFi AP
 ├── input_functions.cpp/h       # Input handling & keypad
-└── serial_functions.cpp/h      # APC220 serial communication
+└── serial_functions.cpp/h      # APC220 + boot banner
 
 include/
 └── kroner_config.h             # Centralized configuration
@@ -176,10 +195,12 @@ Configuration string: `PARA 435000 3 9 3 0`
 ## Development
 
 ### Project Structure
+- **FreeRTOS Native Tasks:** Preemptive multitasking with core pinning for deterministic behavior
+- **Thread-Safe Design:** Volatile qualifiers on shared state variables for multi-core safety
 - **Modular Design:** Each subsystem (BLE, WiFi, Inputs, Radio) is isolated in separate files
 - **Centralized Configuration:** All pins, settings, and constants in one header file
 - **Debug Macros:** Conditional compilation for debug output
-- **Interrupt-Driven Inputs:** Efficient handling of time-critical inputs
+- **Interrupt-Driven Inputs:** Efficient handling of time-critical inputs (F1, F2, F3)
 
 ### Adding New Features
 1. Define new constants in `include/kroner_config.h`
@@ -231,9 +252,23 @@ Current build statistics:
 
 ## Version History
 
+### 1.0.3 (Current)
+- **FreeRTOS native tasks** with dual-core pinning
+- Replaced custom TaskScheduler with ESP32 native multitasking
+- Core 0: WiFi/networking operations
+- Core 1: BLE and real-time input processing
+- Improved keypad responsiveness (100Hz scan rate)
+- Thread-safe shared state management
+- Centralized boot banner in `printBootBanner()`
+- Task priorities optimized for deterministic I/O handling
+
+### 1.0.2
+- Centralized configuration system in `kroner_config.h`
+- Build system improvements for library compilation
+- APCModule integration fixes
+
 ### 1.0.1
 - Modular architecture implementation
-- Centralized configuration system
 - WiFi captive portal
 - BLE dual-stack support
 - APC220 radio integration

@@ -3,259 +3,256 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kroner Hub - Monitor</title>
+  <title>Kroner Hub - Display</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #ffffff;
       min-height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
       padding: 20px;
     }
+    
     .container {
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-      max-width: 600px;
       width: 100%;
-      padding: 30px;
+      max-width: 1200px;
     }
-    h1 {
-      text-align: center;
-      color: #333;
-      margin-bottom: 10px;
-      font-size: 28px;
-    }
-    .status {
-      text-align: center;
-      font-size: 14px;
-      color: #666;
-      margin-bottom: 20px;
-      padding: 10px;
-      background: #f5f5f5;
-      border-radius: 6px;
-    }
-    .status.connected { background: #e8f5e9; color: #2e7d32; }
-    .status.disconnected { background: #ffebee; color: #c62828; }
-    .messages {
-      border: 2px solid #e0e0e0;
+    
+    .display-section {
+      background: #ffffff;
       border-radius: 8px;
-      height: 400px;
-      overflow-y: auto;
-      padding: 15px;
-      background: #fafafa;
-      margin-bottom: 20px;
+      padding: 60px 40px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      margin-bottom: 30px;
     }
-    .message {
-      padding: 12px;
-      margin-bottom: 10px;
-      background: white;
-      border-left: 4px solid #667eea;
-      border-radius: 4px;
-      font-family: 'Courier New', monospace;
-      font-size: 12px;
-      word-break: break-all;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .message-time {
-      font-size: 11px;
-      color: #999;
-      display: block;
-      margin-bottom: 5px;
-    }
-    .message-data {
-      color: #333;
-      font-weight: 500;
-    }
-    .message-hex {
-      font-size: 10px;
-      color: #999;
-      margin-top: 5px;
-      display: block;
-    }
-    .info-panel {
-      background: #f5f5f5;
-      padding: 15px;
-      border-radius: 8px;
-      margin-top: 20px;
-    }
-    .info-row {
+    
+    .display-content {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 8px;
-      font-size: 13px;
+      align-items: center;
+      gap: 40px;
     }
-    .info-label { color: #666; font-weight: 600; }
-    .info-value { color: #333; }
-    .controls {
-      display: flex;
-      gap: 10px;
-      margin-top: 20px;
-    }
-    button {
+    
+    .time-display {
       flex: 1;
-      padding: 12px;
-      border: none;
-      border-radius: 6px;
+      font-size: 120px;
+      font-weight: 600;
+      color: #202124;
+      letter-spacing: 2px;
+      font-variant-numeric: tabular-nums;
+      font-family: 'Roboto Mono', monospace;
+    }
+    
+    .points-display {
+      flex: 0 0 auto;
+      font-size: 100px;
+      font-weight: 600;
+      color: #202124;
+      letter-spacing: 2px;
+      font-family: 'Roboto Mono', monospace;
+      min-width: 150px;
+      text-align: right;
+    }
+
+    .messages-section {
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .messages-label {
       font-size: 14px;
       font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s ease;
+      color: #5f6368;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
-    .btn-clear {
-      background: #f44336;
-      color: white;
-    }
-    .btn-clear:hover { background: #d32f2f; }
-    .btn-send {
-      background: #667eea;
-      color: white;
-    }
-    .btn-send:hover { background: #5568d3; }
-    .input-row {
-      margin-top: 15px;
-      display: flex;
-      gap: 10px;
-    }
-    input[type="text"] {
-      flex: 1;
-      padding: 10px;
-      border: 2px solid #e0e0e0;
+
+    .messages-container {
+      background: #f8f9fa;
       border-radius: 6px;
-      font-size: 13px;
+      border: 1px solid #e8eaed;
+      height: 200px;
+      overflow-y: auto;
+      padding: 12px;
       font-family: 'Courier New', monospace;
+      font-size: 12px;
     }
-    input[type="text"]:focus {
-      outline: none;
-      border-color: #667eea;
+
+    .message-item {
+      padding: 8px;
+      margin-bottom: 6px;
+      background: white;
+      border-left: 3px solid #1f2937;
+      border-radius: 3px;
+      line-height: 1.4;
+    }
+
+    .message-time {
+      font-size: 11px;
+      color: #9ca3af;
+      margin-right: 8px;
+    }
+
+    .message-text {
+      color: #202124;
+    }
+
+    .messages-container::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .messages-container::-webkit-scrollbar-track {
+      background: #f8f9fa;
+      border-radius: 3px;
+    }
+
+    .messages-container::-webkit-scrollbar-thumb {
+      background: #d1d5db;
+      border-radius: 3px;
+    }
+
+    .messages-container::-webkit-scrollbar-thumb:hover {
+      background: #9ca3af;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>🔌 Kroner Hub Monitor</h1>
-    <div class="status disconnected" id="status">
-      ❌ Desconectado
-    </div>
-    
-    <div class="messages" id="messages"></div>
-    
-    <div class="info-panel">
-      <div class="info-row">
-        <span class="info-label">Mensajes recibidos:</span>
-        <span class="info-value" id="count">0</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Último mensaje:</span>
-        <span class="info-value" id="last">-</span>
+    <div class="display-section">
+      <div class="display-content">
+        <div class="time-display" id="timeDisplay">--:--</div>
+        <div class="points-display" id="pointsDisplay">--</div>
       </div>
     </div>
-    
-    <div class="input-row">
-      <input type="text" id="inputMsg" placeholder="Escribe un mensaje para enviar..." />
-      <button class="btn-send" onclick="sendMessage()">Enviar</button>
-    </div>
-    
-    <div class="controls">
-      <button class="btn-clear" onclick="clearMessages()">Limpiar</button>
+
+    <div class="messages-section">
+      <div class="messages-label">Mensajes</div>
+      <div class="messages-container" id="messagesContainer"></div>
     </div>
   </div>
 
   <script>
-    let messageCount = 0;
     let lastMessageId = 0;
+    const MAX_MESSAGES = 50;
     
-    // Polling para obtener mensajes nuevos cada 200ms
+    /**
+     * Decodifica el mensaje según el protocolo display.md
+     * Formato: XXYYT F PPTEXT...
+     */
+    function decodeMessage(data) {
+      // Ser tolerantes: si no cumple el largo, devolvemos lo que tengamos
+      if (data.length < 6) {
+        return { valid: false, raw: data };
+      }
+
+      const typeChar = data.substring(4, 5);
+      const type = parseInt(typeChar);
+      const points = data.length >= 8 ? data.substring(6, 8) : '';
+      // Si falta PP, al menos intentamos usar el resto como texto
+      const text = data.length >= 8 ? data.substring(8) : data.substring(5);
+
+      return {
+        valid: !Number.isNaN(type),
+        type,
+        points,
+        text
+      };
+    }
+
+    function updateDisplay(decoded) {
+      const timeDisplay = document.getElementById('timeDisplay');
+      const pointsDisplay = document.getElementById('pointsDisplay');
+
+      if (decoded.type === 1) {
+        // T=1: Crono con puntos
+        timeDisplay.textContent = decoded.text || '--:--';
+        pointsDisplay.textContent = decoded.points || '--';
+      } else if (decoded.type === 2) {
+        // T=2: Texto normal
+        timeDisplay.textContent = decoded.text || '';
+        pointsDisplay.textContent = '--';
+      } else if (decoded.type === 3) {
+        // T=3: Limpiar pantalla
+        timeDisplay.textContent = '--:--';
+        pointsDisplay.textContent = '--';
+      } else if (decoded.type === 4) {
+        // T=4: Texto con limpieza previa
+        timeDisplay.textContent = decoded.text || '';
+        pointsDisplay.textContent = '--';
+      } else {
+        // Otros tipos: mostrar texto y puntos si vienen
+        timeDisplay.textContent = decoded.text || '--';
+        pointsDisplay.textContent = decoded.points || '--';
+      }
+    }
+
+    function addMessage(text) {
+      const container = document.getElementById('messagesContainer');
+      const now = new Date();
+      const time = now.toLocaleTimeString();
+      
+      const msgItem = document.createElement('div');
+      msgItem.className = 'message-item';
+      msgItem.innerHTML = `<span class="message-time">${time}</span><span class="message-text">${text}</span>`;
+      
+      container.appendChild(msgItem);
+      
+      // Limitar a MAX_MESSAGES
+      const items = container.querySelectorAll('.message-item');
+      if (items.length > MAX_MESSAGES) {
+        items[0].remove();
+      }
+      
+      // Auto-scroll al final
+      container.scrollTop = container.scrollHeight;
+    }
+
     function pollMessages() {
       fetch('/api/messages')
         .then(response => response.json())
         .then(data => {
           if (data.len > 0 && data.time > lastMessageId) {
             lastMessageId = data.time;
-            messageCount++;
-            
+
             // Decodificar base64
             const binaryString = atob(data.data);
             const bytes = new Uint8Array(binaryString.length);
             for (let i = 0; i < binaryString.length; i++) {
               bytes[i] = binaryString.charCodeAt(i);
             }
-            
-            // Mostrar como texto y hex
+
+            // Convertir a string
             let display = '';
             try {
               display = String.fromCharCode(...bytes);
-            } catch(e) {
-              display = `[${bytes.length} bytes]`;
+            } catch (e) {
+              display = '';
             }
-            const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' ');
-            
-            const msg = document.createElement('div');
-            msg.className = 'message';
-            msg.innerHTML = `
-              <span class="message-time">${new Date().toLocaleTimeString()}</span>
-              <span class="message-data">${display}</span>
-              <span class="message-hex">HEX: ${hex}</span>
-            `;
-            
-            const container = document.getElementById('messages');
-            container.appendChild(msg);
-            container.scrollTop = container.scrollHeight;
-            
-            document.getElementById('count').textContent = messageCount;
-            document.getElementById('last').textContent = new Date().toLocaleTimeString();
+
+            // Decodificar según protocolo
+            const decoded = decodeMessage(display);
+            // Siempre mostramos en el historial para depurar
+            addMessage(display || '[vacío]');
+
+            if (decoded.valid) {
+              updateDisplay(decoded);
+            }
           }
-          updateStatus(true);
         })
         .catch(error => {
           console.error('Error al polling:', error);
-          updateStatus(false);
         });
     }
-    
-    function updateStatus(connected) {
-      const status = document.getElementById('status');
-      if (connected) {
-        status.textContent = '✅ Conectado';
-        status.className = 'status connected';
-      } else {
-        status.textContent = '❌ Desconectado';
-        status.className = 'status disconnected';
-      }
-    }
-    
-    function clearMessages() {
-      document.getElementById('messages').innerHTML = '';
-      messageCount = 0;
-      document.getElementById('count').textContent = '0';
-    }
-    
-    function sendMessage() {
-      const input = document.getElementById('inputMsg');
-      const msg = input.value.trim();
-      if (msg) {
-        fetch('/api/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: msg
-        })
-        .then(() => {
-          input.value = '';
-        })
-        .catch(error => console.error('Error al enviar:', error));
-      }
-    }
-    
-    document.getElementById('inputMsg').addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') sendMessage();
-    });
-    
+
     // Iniciar polling
     setInterval(pollMessages, 200);
-    updateStatus(false);
   </script>
 </body>
 </html>

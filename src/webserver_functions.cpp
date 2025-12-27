@@ -65,20 +65,20 @@ void handleGetMessages() {
   // Convertir buffer a base64
   char base64Buffer[400];
   int base64Len = 0;
-  if (lastMessageLen > 0) {
+  if (bleMessageLen > 0) {
     const char* alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     int i = 0;
-    while (i < lastMessageLen) {
-      uint8_t b1 = lastMessageBuffer[i++];
-      uint8_t b2 = (i < lastMessageLen) ? lastMessageBuffer[i++] : 0;
-      uint8_t b3 = (i < lastMessageLen) ? lastMessageBuffer[i++] : 0;
+    while (i < bleMessageLen) {
+      uint8_t b1 = bleMessageBuffer[i++];
+      uint8_t b2 = (i < bleMessageLen) ? bleMessageBuffer[i++] : 0;
+      uint8_t b3 = (i < bleMessageLen) ? bleMessageBuffer[i++] : 0;
       
       base64Buffer[base64Len++] = alphabet[b1 >> 2];
       base64Buffer[base64Len++] = alphabet[((b1 & 0x03) << 4) | (b2 >> 4)];
-      if (i - 1 < lastMessageLen) {
+      if (i - 1 < bleMessageLen) {
         base64Buffer[base64Len++] = alphabet[((b2 & 0x0F) << 2) | (b3 >> 6)];
       }
-      if (i < lastMessageLen) {
+      if (i < bleMessageLen) {
         base64Buffer[base64Len++] = alphabet[b3 & 0x3F];
       }
     }
@@ -87,7 +87,7 @@ void handleGetMessages() {
   
   snprintf(jsonResponse, sizeof(jsonResponse), 
     "{\"len\":%d,\"time\":%lu,\"data\":\"%s\"}",
-    lastMessageLen, lastMessageTime, base64Buffer);
+    bleMessageLen, bleMessageTime, base64Buffer);
   
   webServer.send(200, "application/json", jsonResponse);
 }

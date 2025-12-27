@@ -11,10 +11,11 @@ extern BLECharacteristic firmwareCharacteristic;
 extern BLEService serialBridgeService;
 extern BLECharacteristic serialBridgeWriteChar;
 
-// Buffer para datos recibidos por BLE
-extern volatile uint8_t lastMessageBuffer[255];
-extern volatile int lastMessageLen;
-extern volatile unsigned long lastMessageTime;
+// Buffer para datos recibidos por BLE (para enviar al APC220)
+extern volatile uint8_t bleMessageBuffer[255];
+extern volatile int bleMessageLen;
+extern volatile unsigned long bleMessageTime;
+extern volatile bool bleMessageReady;
 
 // Funciones BLE
 void initBLE();

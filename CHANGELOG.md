@@ -3,6 +3,34 @@
 Format based on  [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 
+## [1.0.3] - 27-12-2025
+
+### Added
+- FreeRTOS native task implementation with pinned cores for optimal ESP32 dual-core utilization
+- `startSystemTasks()` function to initialize and pin tasks to specific cores
+- `printBootBanner()` function in serial_functions for centralized firmware info display
+- Task handles and declarations for all system tasks (WebServer, BLE, Inputs, Radio, Debug)
+- Volatile qualifiers on shared BLE connection state variables for thread-safe access
+
+### Changed
+- **BREAKING**: Complete migration from custom TaskScheduler to FreeRTOS native tasks
+- Core 0 assignment: WebServer/DNS (50ms) and Radio (200ms) for WiFi stack compatibility
+- Core 1 assignment: BLE (20ms), Inputs (10ms) and Debug (5s) for responsive I/O handling
+- Input scanning frequency increased to 100Hz (10ms) for improved keypad responsiveness
+- Main loop simplified to idle delay; all work now runs in dedicated FreeRTOS tasks
+- Boot banner extraction from setup() to reusable `printBootBanner()` function
+
+### Removed
+- Custom TaskScheduler class and all related dependencies
+- TaskScheduler.h/cpp files (replaced by FreeRTOS native implementation)
+- Cooperative scheduling replaced with preemptive multitasking
+
+### Technical Details
+- Task priorities: BLE & Inputs (3), WebServer & Radio (2), Debug (1)
+- Stack sizes: WebServer/BLE/Radio (4096), Debug (3072)
+- All tasks use `vTaskDelay()` for precise, non-blocking timing
+- Architecture now leverages true parallel execution on both ESP32 cores
+
 ## [1.0.2] - 25-12-2025
 
 ### Added

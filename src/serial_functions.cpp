@@ -17,3 +17,16 @@ void initAPC220() {
   String resp = radio.getSettings();
   DEBUG_PRINTLN(resp);
 }
+
+void printBootBanner() {
+  DEBUG_PRINTLN("\n=================================");
+  DEBUG_PRINT("Device: ");
+  DEBUG_PRINTLN(DEVICE_MODEL);
+  DEBUG_PRINT("Firmware Version: ");
+  DEBUG_PRINTLN(FIRMWARE_VERSION);
+  DEBUG_PRINT("Build Date: ");
+  DEBUG_PRINT(FIRMWARE_BUILD_DATE);
+  DEBUG_PRINT(" ");
+  DEBUG_PRINTLN(FIRMWARE_BUILD_TIME);
+  DEBUG_PRINTLN("=================================\n");
+}

@@ -9,10 +9,11 @@ BLECharacteristic firmwareCharacteristic("c555fa9a-a1b8-11ee-8c90-0242ac120003",
 BLEService serialBridgeService("12345678-1234-5678-1234-56789abcdef0");
 BLECharacteristic serialBridgeWriteChar("12345678-1234-5678-1234-56789abcdef1", BLEWrite | BLEWriteWithoutResponse, 244);
 
-// Buffer para datos recibidos por BLE
-volatile uint8_t lastMessageBuffer[255];
-volatile int lastMessageLen = 0;
-volatile unsigned long lastMessageTime = 0;
+// Buffer para datos recibidos por BLE (para enviar al APC220)
+volatile uint8_t bleMessageBuffer[255];
+volatile int bleMessageLen = 0;
+volatile unsigned long bleMessageTime = 0;
+volatile bool bleMessageReady = false;
 
 void initBLE() {
   if (!BLE.begin()) {
@@ -106,21 +107,15 @@ void onFirmwareCharacteristicWritten(BLEDevice central, BLECharacteristic charac
 
 void onSerialBridgeWritten(BLEDevice central, BLECharacteristic characteristic) {
   int len = characteristic.valueLength();
-  if (len <= 0) return;
+  if (len <= 0 || len > 255) return;
   const uint8_t* data = characteristic.value();
 
-  // Reenviar bytes crudos a Serial2 (UART del APC220)
-  Serial2.write(data, len);
-  Serial2.flush();
+  // Guardar datos en buffer para que la tarea los procese
+  memcpy((void*)bleMessageBuffer, data, len);
+  bleMessageLen = len;
+  bleMessageTime = millis();
+  bleMessageReady = true;
 
-  // Guardar en buffer para clientes HTTP
-  if (len <= 255) {
-    memcpy((void*)lastMessageBuffer, data, len);
-    lastMessageLen = len;
-    lastMessageTime = millis();
-  }
-
-  // Log opcional por USB
-  DEBUG_PRINT("BLE->UART (bytes): ");
+  DEBUG_PRINT("BLE mensaje recibido (bytes): ");
   DEBUG_PRINTLN(len);
 }
