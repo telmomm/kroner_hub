@@ -1,0 +1,92 @@
+(kicad_sch
+	(version 20250114)
+	(generator "eeschema")
+	(generator_version "9.0")
+	(uuid "05b63f13-3001-4bf5-8ad8-a3b4b68d6141")
+	(paper "A4")
+	(lib_symbols)
+	(sheet
+		(at 71.12 38.1)
+		(size 12.7 3.81)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "3a934341-baba-48ed-b897-b3e049174cd7")
+		(property "Sheetname" "Esquematico"
+			(at 71.12 37.3884 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "Esquematico.kicad_sch"
+			(at 71.12 42.4946 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "Kroner-Hub_4629e9e656224ac0b9a9b8b28edbb198"
+				(path "/05b63f13-3001-4bf5-8ad8-a3b4b68d6141"
+					(page "1")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 72.39 53.34)
+		(size 12.7 3.81)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "88ee4343-3e32-483e-89ff-10f738e9d63f")
+		(property "Sheetname" "Botonera"
+			(at 72.39 52.6284 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "Botonera.kicad_sch"
+			(at 72.39 57.7346 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "Kroner-Hub_4629e9e656224ac0b9a9b8b28edbb198"
+				(path "/05b63f13-3001-4bf5-8ad8-a3b4b68d6141"
+					(page "2")
+				)
+			)
+		)
+	)
+)

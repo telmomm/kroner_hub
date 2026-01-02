@@ -1,0 +1,4 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "Kroner-Hub_4629e9e656224ac0b9a9b8b28edbb198")(type "KiCad")(uri "$(KIPRJMOD)/Kroner-Hub_4629e9e656224ac0b9a9b8b28edbb198.pretty")(options "")(descr ""))
+)

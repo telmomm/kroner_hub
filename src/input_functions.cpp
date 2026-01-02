@@ -23,7 +23,7 @@ const byte columsCount = 3;
 String keyNames[rowsCount][columsCount] = {
   {"Inicio", "Carrera", "Pausa"},
   {"Fin", "6 Segundos", "4 Puntos"},
-  {"Reset", "Eliminado", "Extra"}
+  {"Reset", "Eliminado", "Perilla"}
 };
 
 char keys[rowsCount][columsCount] = {

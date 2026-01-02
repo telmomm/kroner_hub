@@ -141,6 +141,10 @@
   <script>
     let lastMessageId = 0;
     const MAX_MESSAGES = 50;
+    let ws = null;
+    let reconnectAttempts = 0;
+    const MAX_RECONNECT_ATTEMPTS = 5;
+    const RECONNECT_DELAY = 3000; // 3 segundos
     
     /**
      * Decodifica el mensaje según el protocolo display.md
@@ -214,10 +218,26 @@
       container.scrollTop = container.scrollHeight;
     }
 
-    function pollMessages() {
-      fetch('/api/messages')
-        .then(response => response.json())
-        .then(data => {
+    /**
+     * Conecta al WebSocket del servidor
+     */
+    function connectWebSocket() {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.hostname}:81/`;
+      
+      console.log('Conectando a WebSocket:', wsUrl);
+      ws = new WebSocket(wsUrl);
+      
+      ws.onopen = function() {
+        console.log('WebSocket conectado');
+        reconnectAttempts = 0;
+        addMessage('[Conectado al servidor]');
+      };
+      
+      ws.onmessage = function(event) {
+        try {
+          const data = JSON.parse(event.data);
+          
           if (data.len > 0 && data.time > lastMessageId) {
             lastMessageId = data.time;
 
@@ -245,14 +265,34 @@
               updateDisplay(decoded);
             }
           }
-        })
-        .catch(error => {
-          console.error('Error al polling:', error);
-        });
+        } catch (error) {
+          console.error('Error al procesar mensaje:', error);
+        }
+      };
+      
+      ws.onerror = function(error) {
+        console.error('Error en WebSocket:', error);
+        addMessage('[Error en WebSocket]');
+      };
+      
+      ws.onclose = function() {
+        console.log('WebSocket desconectado');
+        addMessage('[Desconectado del servidor]');
+        
+        // Intentar reconectar
+        if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+          reconnectAttempts++;
+          console.log(`Reintentando conexión (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`);
+          setTimeout(connectWebSocket, RECONNECT_DELAY);
+        } else {
+          console.error('Máximo número de reintentos alcanzado');
+          addMessage('[No se pudo reconectar]');
+        }
+      };
     }
 
-    // Iniciar polling
-    setInterval(pollMessages, 200);
+    // Conectar al cargar la página
+    connectWebSocket();
   </script>
 </body>
 </html>

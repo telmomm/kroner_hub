@@ -50,6 +50,7 @@ void startSystemTasks() {
 void taskHandleWebServer() {
   webServer.handleClient();
   dnsServer.processNextRequest();
+  webSocket.loop();  // Procesar eventos WebSocket
 }
 
 /**
@@ -126,7 +127,7 @@ void taskScanInputs() {
  * @brief Tarea: Procesa datos del módulo APC220
  * Intervalo: 200ms
  * 
- * Envía datos que llegaron por BLE al APC220
+ * Envía datos que llegaron por BLE al APC220 y notifica a WebSocket
  */
 void taskProcessRadio() {
   // Si hay un nuevo mensaje BLE listo
@@ -144,6 +145,9 @@ void taskProcessRadio() {
     
     DEBUG_PRINT("BLE->APC220 (bytes): ");
     DEBUG_PRINTLN(tempLen);
+    
+    // Notificar a todos los clientes WebSocket
+    broadcastBLEMessage();
   }
 }
 
