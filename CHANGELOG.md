@@ -3,6 +3,41 @@
 Format based on  [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 
+## [1.0.4] - 02-01-2026
+
+### Added
+- WebSocket server implementation on port 81 for real-time message delivery
+- Links2004/WebSockets library (v2.4.1) for bidirectional communication
+- `broadcastBLEMessage()` function to notify all connected WebSocket clients
+- WebSocket event handler `onWebSocketEvent()` for managing client connections
+- Client-side WebSocket implementation in index.html with automatic reconnection
+- Python-based WebSocket simulator (`websocket_simuñator.ipynb`) with multiple scenarios:
+  - Chronometer with variable points accumulation
+  - Text messages display
+  - Countdown simulation (10 to 0)
+  - Score updates in real-time
+  - Mixed scenario combining all features
+
+### Changed
+- **BREAKING**: Replaced HTTP polling (200ms intervals) with push-based WebSocket architecture
+- Data transmission now event-driven: messages sent only when new BLE data arrives
+- Removed unnecessary periodic message broadcasts
+- Enhanced `taskProcessRadio()` to call `broadcastBLEMessage()` on new BLE data
+- Integrated `webSocket.loop()` into `taskHandleWebServer()` for event processing
+- Client reconnection logic with 5 retry attempts and 3-second intervals
+
+### Fixed
+- Bandwidth optimization: eliminated redundant polling of unchanged data
+- Real-time responsiveness improved from 200ms to millisecond-level latency
+- Server no longer broadcasts identical messages on every request
+
+### Technical Details
+- WebSocket listens on `ws://192.168.4.1:81/`
+- Broadcast triggered only when `bleMessageReady` flag is true
+- Automatic client-side reconnection with exponential backoff
+- Base64 encoding preserved for binary data compatibility
+- Message format unchanged: `{"len": int, "time": ms, "data": base64_str}`
+
 ## [1.0.3] - 27-12-2025
 
 ### Added
