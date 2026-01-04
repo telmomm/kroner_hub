@@ -252,28 +252,7 @@ Current build statistics:
 
 ## Version History
 
-### 1.0.3 (Current)
-- **FreeRTOS native tasks** with dual-core pinning
-- Replaced custom TaskScheduler with ESP32 native multitasking
-- Core 0: WiFi/networking operations
-- Core 1: BLE and real-time input processing
-- Improved keypad responsiveness (100Hz scan rate)
-- Thread-safe shared state management
-- Centralized boot banner in `printBootBanner()`
-- Task priorities optimized for deterministic I/O handling
-
-### 1.0.2
-- Centralized configuration system in `kroner_config.h`
-- Build system improvements for library compilation
-- APCModule integration fixes
-
-### 1.0.1
-- Modular architecture implementation
-- WiFi captive portal
-- BLE dual-stack support
-- APC220 radio integration
-- Web interface with REST API
-- LittleFS filesystem support
+See CHANGELOG file
 
 ---
 

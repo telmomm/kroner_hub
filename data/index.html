@@ -121,6 +121,41 @@
     .messages-container::-webkit-scrollbar-thumb:hover {
       background: #9ca3af;
     }
+
+    .footer {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      margin-top: 40px;
+      padding: 20px;
+    }
+
+    .footer img {
+      height: 80px;
+      width: auto;
+      opacity: 0.8;
+      margin-bottom: 15px;
+    }
+
+    .copyright {
+      font-size: 12px;
+      color: #5f6368;
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    .copyright a {
+      color: #1f2937;
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .copyright a:hover {
+      color: #0d47a1;
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
@@ -132,20 +167,15 @@
       </div>
     </div>
 
-    <div class="messages-section">
-      <div class="messages-label">Mensajes</div>
-      <div class="messages-container" id="messagesContainer"></div>
+    <div class="footer">
+      <img src="icon.png" alt="Kroner Hub Logo">
+      <div class="copyright">
+        <p>&copy; 2026 Telmo Miguel-Medina</p>
+      </div>
     </div>
   </div>
 
   <script>
-    let lastMessageId = 0;
-    const MAX_MESSAGES = 50;
-    let ws = null;
-    let reconnectAttempts = 0;
-    const MAX_RECONNECT_ATTEMPTS = 5;
-    const RECONNECT_DELAY = 3000; // 3 segundos
-    
     /**
      * Decodifica el mensaje según el protocolo display.md
      * Formato: XXYYT F PPTEXT...
@@ -197,27 +227,6 @@
       }
     }
 
-    function addMessage(text) {
-      const container = document.getElementById('messagesContainer');
-      const now = new Date();
-      const time = now.toLocaleTimeString();
-      
-      const msgItem = document.createElement('div');
-      msgItem.className = 'message-item';
-      msgItem.innerHTML = `<span class="message-time">${time}</span><span class="message-text">${text}</span>`;
-      
-      container.appendChild(msgItem);
-      
-      // Limitar a MAX_MESSAGES
-      const items = container.querySelectorAll('.message-item');
-      if (items.length > MAX_MESSAGES) {
-        items[0].remove();
-      }
-      
-      // Auto-scroll al final
-      container.scrollTop = container.scrollHeight;
-    }
-
     /**
      * Conecta al WebSocket del servidor
      */
@@ -231,7 +240,6 @@
       ws.onopen = function() {
         console.log('WebSocket conectado');
         reconnectAttempts = 0;
-        addMessage('[Conectado al servidor]');
       };
       
       ws.onmessage = function(event) {
@@ -258,8 +266,6 @@
 
             // Decodificar según protocolo
             const decoded = decodeMessage(display);
-            // Siempre mostramos en el historial para depurar
-            addMessage(display || '[vacío]');
 
             if (decoded.valid) {
               updateDisplay(decoded);
@@ -272,12 +278,10 @@
       
       ws.onerror = function(error) {
         console.error('Error en WebSocket:', error);
-        addMessage('[Error en WebSocket]');
       };
       
       ws.onclose = function() {
         console.log('WebSocket desconectado');
-        addMessage('[Desconectado del servidor]');
         
         // Intentar reconectar
         if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
@@ -286,10 +290,15 @@
           setTimeout(connectWebSocket, RECONNECT_DELAY);
         } else {
           console.error('Máximo número de reintentos alcanzado');
-          addMessage('[No se pudo reconectar]');
         }
       };
     }
+
+    let lastMessageId = 0;
+    let ws = null;
+    let reconnectAttempts = 0;
+    const MAX_RECONNECT_ATTEMPTS = 5;
+    const RECONNECT_DELAY = 3000; // 3 segundos
 
     // Conectar al cargar la página
     connectWebSocket();

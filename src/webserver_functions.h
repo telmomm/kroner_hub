@@ -18,6 +18,7 @@ void initWiFiAP();
 void initWebServer();
 void handleRoot();
 void handleNotFound();
+void handleStaticFile();
 void handleGetMessages();
 void handleSendMessage();
 void broadcastBLEMessage();

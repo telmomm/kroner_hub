@@ -37,6 +37,7 @@ void initWebServer() {
 
   // Configurar rutas
   webServer.on("/", handleRoot);
+  webServer.on("/icon.png", handleStaticFile);
   webServer.on("/api/messages", handleGetMessages);
   webServer.on("/api/send", HTTP_POST, handleSendMessage);
   webServer.onNotFound(handleNotFound);
@@ -52,6 +53,22 @@ void handleRoot() {
     file.close();
   } else {
     webServer.send(404, "text/plain", "index.html no encontrado");
+  }
+}
+
+void handleStaticFile() {
+  String path = webServer.uri();
+  if (LittleFS.exists(path)) {
+    File file = LittleFS.open(path, "r");
+    String contentType = "application/octet-stream";
+    if (path.endsWith(".png")) contentType = "image/png";
+    else if (path.endsWith(".jpg") || path.endsWith(".jpeg")) contentType = "image/jpeg";
+    else if (path.endsWith(".gif")) contentType = "image/gif";
+    else if (path.endsWith(".ico")) contentType = "image/x-icon";
+    webServer.streamFile(file, contentType);
+    file.close();
+  } else {
+    webServer.send(404, "text/plain", "Archivo no encontrado");
   }
 }
 

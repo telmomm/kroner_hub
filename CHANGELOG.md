@@ -3,6 +3,30 @@
 Format based on  [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 
+## [1.0.5] - 04-01-2026
+
+### Added
+- Static file serving capability for assets in LittleFS (images, stylesheets, etc.)
+- `handleStaticFile()` function in webserver to serve files with correct MIME types
+- Support for multiple image formats: PNG, JPEG, GIF, ICO with proper Content-Type headers
+- Dedicated route `/icon.png` for serving logo/icon files
+
+### Changed
+- Board partition scheme from `default.csv` to `no_ota.csv` to provide ~2MB filesystem space (vs 1.2MB)
+- Improved LittleFS memory management to accommodate larger asset files (e.g., 419KB PNG icon)
+- WebServer routing now includes static asset paths in addition to API endpoints
+
+### Fixed
+- Icon/logo image not loading in web interface due to missing static file handler
+- Filesystem capacity issues when storing large image files
+- MIME type handling for binary assets served from LittleFS
+
+### Technical Details
+- Static files served with correct Content-Type headers: `image/png`, `image/jpeg`, `image/gif`, `image/x-icon`
+- Fallback to `application/octet-stream` for unknown file types
+- No more OTA (Over-The-Air) partition, all space dedicated to firmware and LittleFS
+- Filesystem now supports files up to ~2MB total capacity
+
 ## [1.0.4] - 02-01-2026
 
 ### Added
