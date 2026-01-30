@@ -3,6 +3,13 @@
 Format based on  [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 
+## [1.0.6] - 30-01-2026
+
+### Fixed
+- Interrupt trigger mode changed from `RISING` to `FALLING` for F1, F2, and F3 pins
+- Button press detection now triggers only on actual button press (HIGH → LOW transition) instead of on release
+- Resolved double detection issue caused by detecting both press and release events with INPUT_PULLUP configuration
+
 ## [1.0.5] - 04-01-2026
 
 ### Added

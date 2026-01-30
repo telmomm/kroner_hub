@@ -5,7 +5,7 @@
 // Variables globales de interrupciones
 volatile uint32_t F1, F2, F3;
 volatile bool newInputValue = false;
-const uint32_t debounceTime = 200;      // valor previo estable para keypad
+const uint32_t debounceTime = 500;      // valor previo estable para keypad
 const uint32_t switchDebounceTime = 100;
 volatile uint32_t lastInterruptTimeF1 = 0;
 volatile uint32_t lastInterruptTimeF2 = 0;
@@ -69,13 +69,13 @@ void handleInterruptF3() {
 void initInputs() {
   // Configurar pines F con interrupciones
   pinMode(F1PIN, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(F1PIN), handleInterruptF1, RISING);
+  attachInterrupt(digitalPinToInterrupt(F1PIN), handleInterruptF1, FALLING);
 
   pinMode(F2PIN, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(F2PIN), handleInterruptF2, RISING);
+  attachInterrupt(digitalPinToInterrupt(F2PIN), handleInterruptF2, FALLING);
 
   pinMode(F3PIN, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(F3PIN), handleInterruptF3, RISING);
+  attachInterrupt(digitalPinToInterrupt(F3PIN), handleInterruptF3, FALLING);
 
   // Configurar columnas del keypad
   for (int i = 0; i < columsCount; i++) {
@@ -84,7 +84,7 @@ void initInputs() {
 
   // Afinar tiempos del Keypad
   keypad.setDebounceTime(10);  // ms (valor previo)
-  keypad.setHoldTime(500);     // ms
+  keypad.setHoldTime(200);     // ms
 
   // Configurar entradas discretas 7/8/9
   pinMode(INPUT7PIN, INPUT_PULLDOWN);
